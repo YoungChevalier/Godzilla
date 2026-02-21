@@ -39,7 +39,7 @@ const player = {
     height: 40,
     dy: 0,
     isGrounded: true,
-    color: '#0055ff', 
+    color: '#00ccff', // Brightened the player slightly for the night theme
     isInvincible: false,
     invincibilityTimer: 0
 };
@@ -82,20 +82,50 @@ startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', startGame);
 
 // ==========================================
-// CORE FUNCTIONS
+// BACKGROUND GENERATION (CITY LIGHTS)
 // ==========================================
+function generateWindows(bWidth, bHeight) {
+    let windows = [];
+    let cols = Math.floor(bWidth / 15);
+    let rows = Math.floor(bHeight / 20);
+    let paddingX = (bWidth - (cols * 10)) / 2;
+    let paddingY = 10;
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            // 40% chance for a window to be lit
+            if (Math.random() > 0.6) { 
+                windows.push({
+                    wx: paddingX + c * 15, // Window X relative to building
+                    wy: paddingY + r * 20, // Window Y relative to building
+                    wWidth: 6,
+                    wHeight: 10,
+                    // Mostly yellow lights, sometimes warm orange
+                    color: Math.random() > 0.2 ? '#ffeb3b' : '#ffc107' 
+                });
+            }
+        }
+    }
+    return windows;
+}
+
 function initBackground() {
     bgBuildings = [];
-    // Generate initial background buildings
     for (let i = 0; i < 15; i++) {
+        let w = 60 + Math.random() * 60; // Slightly wider buildings
+        let h = 80 + Math.random() * 200; // Taller buildings
         bgBuildings.push({
-            x: i * 70, // Spread them out
-            width: 50 + Math.random() * 40,
-            height: 50 + Math.random() * 150
+            x: i * 80, 
+            width: w,
+            height: h,
+            windows: generateWindows(w, h)
         });
     }
 }
 
+// ==========================================
+// CORE FUNCTIONS
+// ==========================================
 function startGame() {
     gameSpeed = BASE_GAME_SPEED;
     score = 0;
@@ -164,7 +194,7 @@ function spawnObstacle() {
         y: GROUND_Y - height,
         width: 30,
         height: height,
-        color: '#ff2222' // Changed to red to stand out against background
+        color: '#ff2222' 
     });
 }
 
@@ -175,7 +205,7 @@ function spawnShockwave() {
         width: 40,
         height: 20,
         speed: gameSpeed * 1.6, 
-        color: '#ffeb3b' // Yellow electric/kinetic shockwave
+        color: '#ffeb3b' 
     });
 }
 
@@ -204,16 +234,18 @@ function update() {
 
     // --- Background & Road Update ---
     roadOffset += gameSpeed;
-    if (roadOffset > 80) roadOffset -= 80; // Reset offset to create endless loop (40 width + 40 gap)
+    if (roadOffset > 80) roadOffset -= 80; 
 
     for (let i = 0; i < bgBuildings.length; i++) {
-        bgBuildings[i].x -= gameSpeed * 0.3; // Moves at 30% of game speed (Parallax effect)
+        bgBuildings[i].x -= gameSpeed * 0.3; 
         
-        // Recycle buildings that go off-screen
+        // Recycle buildings that go off-screen and generate new windows
         if (bgBuildings[i].x + bgBuildings[i].width < 0) {
             let maxX = Math.max(...bgBuildings.map(b => b.x));
-            bgBuildings[i].x = maxX + 70;
-            bgBuildings[i].height = 50 + Math.random() * 150; // New random height
+            bgBuildings[i].x = maxX + 80;
+            bgBuildings[i].width = 60 + Math.random() * 60;
+            bgBuildings[i].height = 80 + Math.random() * 200; 
+            bgBuildings[i].windows = generateWindows(bgBuildings[i].width, bgBuildings[i].height);
         }
     }
 
@@ -281,22 +313,30 @@ function update() {
 }
 
 function draw() {
-    // 1. Clear Canvas (Sky)
-    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // 1. Draw Night Sky (This overrides the CSS sky blue)
+    ctx.fillStyle = '#0a0a1a'; // Deep midnight blue/black
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // 2. Draw Parallax Background City
-    ctx.fillStyle = '#1a1a2e'; // Dark navy silhouette color
+    // 2. Draw Parallax Background City with Lights
     bgBuildings.forEach(b => {
+        // Dark building silhouette
+        ctx.fillStyle = '#1a1a2e'; 
         ctx.fillRect(b.x, GROUND_Y - b.height, b.width, b.height);
+        
+        // Draw lit windows
+        b.windows.forEach(w => {
+            ctx.fillStyle = w.color;
+            ctx.fillRect(b.x + w.wx, GROUND_Y - b.height + w.wy, w.wWidth, w.wHeight);
+        });
     });
 
     // 3. Draw Racing Road
-    ctx.fillStyle = '#222'; // Dark asphalt
+    ctx.fillStyle = '#111'; // Very dark asphalt
     ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, GROUND_HEIGHT);
 
     // 4. Draw Racing Stripes on the road
-    ctx.fillStyle = '#fff';
-    for (let i = -roadOffset; i < CANVAS_WIDTH; i += 80) { // 40px line, 40px gap
+    ctx.fillStyle = '#555'; // Dimmed the white lines slightly for night time
+    for (let i = -roadOffset; i < CANVAS_WIDTH; i += 80) { 
         ctx.fillRect(i, GROUND_Y + 20, 40, 10);
     }
 
@@ -336,6 +376,6 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Initial setup to show background on the start screen
+// Initial setup
 initBackground();
 draw();
