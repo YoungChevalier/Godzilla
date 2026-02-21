@@ -1,39 +1,37 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Godzilla Runner</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kong Runner</title>
+    <link rel="stylesheet" href="Style.css">
+</head>
+<body>
     <div id="game-container">
-      <canvas id="gameCanvas" width="800" height="400"></canvas>
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        
+        <div id="ui-layer">
+            <div id="hud" class="hidden">
+                <div class="hud-text">Score: <span id="score">0</span></div>
+                <div class="hud-text">Lives: <span id="lives">3</span></div>
+            </div>
 
-      <div id="ui-layer">
-        <div id="hud" class="hidden">
-          <div class="hud-text">Score: <span id="score">0</span></div>
-          <div class="hud-text">Lives: <span id="lives">3</span></div>
-        </div>
+            <div id="start-screen" class="screen">
+                <h1>KONG RUNNER</h1>
+                <p>Press <strong>SPACE</strong> or <strong>UP ARROW</strong> to Jump.</p>
+                <p>Jump over the buildings and Kong's Ground Slam Shockwaves!</p>
+                <button id="start-btn">Start Game</button>
+            </div>
 
-        <div id="start-screen" class="screen">
-          <h1>GODZILLA RUNNER</h1>
-          <p>
-            Press <strong>SPACE</strong> or <strong>UP ARROW</strong> to Jump.
-          </p>
-          <p>Jump over the buildings and Godzilla's Atomic Breath!</p>
-          <button id="start-btn">Start Game</button>
+            <div id="game-over-screen" class="screen hidden">
+                <h1>GAME OVER</h1>
+                <p>The city has fallen.</p>
+                <p>Final Score: <span id="final-score">0</span></p>
+                <button id="restart-btn">Try Again</button>
+            </div>
         </div>
-
-        <div id="game-over-screen" class="screen hidden">
-          <h1>GAME OVER</h1>
-          <p>The city has fallen.</p>
-          <p>Final Score: <span id="final-score">0</span></p>
-          <button id="restart-btn">Try Again</button>
-        </div>
-      </div>
     </div>
 
-    <script src="script.js"></script>
-  </body>
+    <script src="Script.js"></script>
+</body>
 </html>
