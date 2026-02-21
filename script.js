@@ -1,8 +1,8 @@
 // ==========================================
 // CONFIGURATION & CONSTANTS
 // ==========================================
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
 const CANVAS_WIDTH = canvas.width;
 const CANVAS_HEIGHT = canvas.height;
@@ -22,273 +22,320 @@ let lives = 3;
 let gameActive = false;
 let frameCount = 0;
 
-// Arrays to hold entities
 let obstacles = [];
-let flames = [];
+let shockwaves = [];
+
+// Background Variables
+let roadOffset = 0;
+let bgBuildings = [];
 
 // ==========================================
 // ENTITY DEFINITIONS
 // ==========================================
 const player = {
-  x: 150,
-  y: GROUND_Y - 40,
-  width: 40,
-  height: 40,
-  dy: 0,
-  isGrounded: true,
-  color: "#0055ff", // Blue
-  isInvincible: false,
-  invincibilityTimer: 0,
+    x: 150,
+    y: GROUND_Y - 40,
+    width: 40,
+    height: 40,
+    dy: 0,
+    isGrounded: true,
+    color: '#0055ff', 
+    isInvincible: false,
+    invincibilityTimer: 0
 };
 
-const godzilla = {
-  x: -20,
-  y: GROUND_Y - 120,
-  width: 100,
-  height: 120,
-  color: "#2e8b57", // Sea Green
+const kong = {
+    x: -10,
+    y: GROUND_Y - 110,
+    width: 90,
+    height: 110,
+    color: '#4E342E', 
+    dy: 0,
+    isJumping: false 
 };
 
 // ==========================================
 // DOM ELEMENTS (UI)
 // ==========================================
-const uiStartScreen = document.getElementById("start-screen");
-const uiGameOverScreen = document.getElementById("game-over-screen");
-const uiHud = document.getElementById("hud");
-const scoreDisplay = document.getElementById("score");
-const livesDisplay = document.getElementById("lives");
-const finalScoreDisplay = document.getElementById("final-score");
-const startBtn = document.getElementById("start-btn");
-const restartBtn = document.getElementById("restart-btn");
+const uiStartScreen = document.getElementById('start-screen');
+const uiGameOverScreen = document.getElementById('game-over-screen');
+const uiHud = document.getElementById('hud');
+const scoreDisplay = document.getElementById('score');
+const livesDisplay = document.getElementById('lives');
+const finalScoreDisplay = document.getElementById('final-score');
+const startBtn = document.getElementById('start-btn');
+const restartBtn = document.getElementById('restart-btn');
 
 // ==========================================
 // INPUT HANDLING
 // ==========================================
-window.addEventListener("keydown", (e) => {
-  if ((e.code === "Space" || e.code === "ArrowUp") && gameActive) {
-    if (player.isGrounded) {
-      player.dy = JUMP_FORCE;
-      player.isGrounded = false;
+window.addEventListener('keydown', (e) => {
+    if ((e.code === 'Space' || e.code === 'ArrowUp') && gameActive) {
+        if (player.isGrounded) {
+            player.dy = JUMP_FORCE;
+            player.isGrounded = false;
+        }
     }
-  }
 });
 
-startBtn.addEventListener("click", startGame);
-restartBtn.addEventListener("click", startGame);
+startBtn.addEventListener('click', startGame);
+restartBtn.addEventListener('click', startGame);
 
 // ==========================================
 // CORE FUNCTIONS
 // ==========================================
+function initBackground() {
+    bgBuildings = [];
+    // Generate initial background buildings
+    for (let i = 0; i < 15; i++) {
+        bgBuildings.push({
+            x: i * 70, // Spread them out
+            width: 50 + Math.random() * 40,
+            height: 50 + Math.random() * 150
+        });
+    }
+}
+
 function startGame() {
-  // Reset State
-  gameSpeed = BASE_GAME_SPEED;
-  score = 0;
-  lives = 3;
-  frameCount = 0;
-  obstacles = [];
-  flames = [];
+    gameSpeed = BASE_GAME_SPEED;
+    score = 0;
+    lives = 3;
+    frameCount = 0;
+    roadOffset = 0;
+    obstacles = [];
+    shockwaves = [];
+    
+    initBackground();
 
-  player.y = GROUND_Y - player.height;
-  player.dy = 0;
-  player.isInvincible = false;
+    player.y = GROUND_Y - player.height;
+    player.dy = 0;
+    player.isInvincible = false;
+    
+    kong.y = GROUND_Y - kong.height;
+    kong.dy = 0;
+    kong.isJumping = false;
+    
+    updateHUD();
 
-  updateHUD();
+    uiStartScreen.classList.add('hidden');
+    uiGameOverScreen.classList.add('hidden');
+    uiHud.classList.remove('hidden');
 
-  // Manage UI
-  uiStartScreen.classList.add("hidden");
-  uiGameOverScreen.classList.add("hidden");
-  uiHud.classList.remove("hidden");
-
-  gameActive = true;
-  gameLoop();
+    gameActive = true;
+    gameLoop();
 }
 
 function gameOver() {
-  gameActive = false;
-  uiHud.classList.add("hidden");
-  uiGameOverScreen.classList.remove("hidden");
-  finalScoreDisplay.innerText = Math.floor(score);
+    gameActive = false;
+    uiHud.classList.add('hidden');
+    uiGameOverScreen.classList.remove('hidden');
+    finalScoreDisplay.innerText = Math.floor(score);
 }
 
 function takeDamage() {
-  if (player.isInvincible) return; // Prevent multiple hits instantly
-
-  lives--;
-  updateHUD();
-
-  if (lives <= 0) {
-    gameOver();
-  } else {
-    // Give player brief invincibility frames (i-frames)
-    player.isInvincible = true;
-    player.invincibilityTimer = 60; // 60 frames (~1 second)
-  }
+    if (player.isInvincible) return; 
+    
+    lives--;
+    updateHUD();
+    
+    if (lives <= 0) {
+        gameOver();
+    } else {
+        player.isInvincible = true;
+        player.invincibilityTimer = 60; 
+    }
 }
 
 function updateHUD() {
-  scoreDisplay.innerText = Math.floor(score);
-  livesDisplay.innerText = lives;
+    scoreDisplay.innerText = Math.floor(score);
+    livesDisplay.innerText = lives;
 }
 
 // ==========================================
 // SPAWNING LOGIC
 // ==========================================
 function spawnObstacle() {
-  // Basic buildings
-  let minHeight = 20;
-  let maxHeight = 70;
-  let height = Math.floor(
-    Math.random() * (maxHeight - minHeight + 1) + minHeight,
-  );
-
-  obstacles.push({
-    x: CANVAS_WIDTH,
-    y: GROUND_Y - height,
-    width: 30,
-    height: height,
-    color: "#555",
-  });
+    let minHeight = 20;
+    let maxHeight = 70;
+    let height = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
+    
+    obstacles.push({
+        x: CANVAS_WIDTH,
+        y: GROUND_Y - height,
+        width: 30,
+        height: height,
+        color: '#ff2222' // Changed to red to stand out against background
+    });
 }
 
-function spawnFlame() {
-  // Godzilla shoots atomic breath
-  flames.push({
-    x: godzilla.x + godzilla.width, // Spawns from Godzilla's mouth
-    y: godzilla.y + 20,
-    width: 60,
-    height: 15,
-    speed: gameSpeed * 1.5, // Faster than obstacles
-    color: "#ff4500", // Orange/Red
-  });
+function spawnShockwave() {
+    shockwaves.push({
+        x: kong.x + kong.width, 
+        y: GROUND_Y - 20, 
+        width: 40,
+        height: 20,
+        speed: gameSpeed * 1.6, 
+        color: '#ffeb3b' // Yellow electric/kinetic shockwave
+    });
 }
 
 // ==========================================
 // COLLISION DETECTION (AABB)
 // ==========================================
 function checkCollision(rect1, rect2) {
-  return (
-    rect1.x < rect2.x + rect2.width &&
-    rect1.x + rect1.width > rect2.x &&
-    rect1.y < rect2.y + rect2.height &&
-    rect1.y + rect1.height > rect2.y
-  );
+    return (
+        rect1.x < rect2.x + rect2.width &&
+        rect1.x + rect1.width > rect2.x &&
+        rect1.y < rect2.y + rect2.height &&
+        rect1.y + rect1.height > rect2.y
+    );
 }
 
 // ==========================================
 // GAME LOOP: UPDATE & DRAW
 // ==========================================
 function update() {
-  frameCount++;
-  score += 0.1; // Score increases with time
+    frameCount++;
+    score += 0.1; 
+    
+    if (frameCount % 600 === 0) gameSpeed += 0.5;
 
-  // Increase difficulty over time
-  if (frameCount % 600 === 0) {
-    // Every ~10 seconds
-    gameSpeed += 0.5;
-  }
+    updateHUD();
 
-  updateHUD();
+    // --- Background & Road Update ---
+    roadOffset += gameSpeed;
+    if (roadOffset > 80) roadOffset -= 80; // Reset offset to create endless loop (40 width + 40 gap)
 
-  // Player Physics
-  player.dy += GRAVITY;
-  player.y += player.dy;
-
-  if (player.y + player.height >= GROUND_Y) {
-    player.y = GROUND_Y - player.height;
-    player.dy = 0;
-    player.isGrounded = true;
-  }
-
-  // Invincibility Logic
-  if (player.isInvincible) {
-    player.invincibilityTimer--;
-    if (player.invincibilityTimer <= 0) player.isInvincible = false;
-  }
-
-  // Move & Clean Obstacles
-  for (let i = obstacles.length - 1; i >= 0; i--) {
-    let obs = obstacles[i];
-    obs.x -= gameSpeed;
-
-    if (checkCollision(player, obs)) takeDamage();
-
-    // Remove off-screen obstacles
-    if (obs.x + obs.width < 0) obstacles.splice(i, 1);
-  }
-
-  // Move & Clean Flames
-  for (let i = flames.length - 1; i >= 0; i--) {
-    let flame = flames[i];
-    flame.x += flame.speed - gameSpeed; // Relative speed
-
-    if (checkCollision(player, flame)) {
-      takeDamage();
-      flames.splice(i, 1); // Destroy flame on hit
-      continue;
+    for (let i = 0; i < bgBuildings.length; i++) {
+        bgBuildings[i].x -= gameSpeed * 0.3; // Moves at 30% of game speed (Parallax effect)
+        
+        // Recycle buildings that go off-screen
+        if (bgBuildings[i].x + bgBuildings[i].width < 0) {
+            let maxX = Math.max(...bgBuildings.map(b => b.x));
+            bgBuildings[i].x = maxX + 70;
+            bgBuildings[i].height = 50 + Math.random() * 150; // New random height
+        }
     }
 
-    // Remove off-screen flames
-    if (flame.x > CANVAS_WIDTH) flames.splice(i, 1);
-  }
+    // --- Player Physics ---
+    player.dy += GRAVITY;
+    player.y += player.dy;
 
-  // Spawn Logic
-  // Randomize obstacle spawn based on speed to keep gaps fair
-  let spawnRate = Math.max(60, 120 - gameSpeed * 5);
-  if (frameCount % Math.floor(spawnRate) === 0) {
-    spawnObstacle();
-  }
+    if (player.y + player.height >= GROUND_Y) {
+        player.y = GROUND_Y - player.height;
+        player.dy = 0;
+        player.isGrounded = true;
+    }
 
-  // Godzilla fires every ~3 seconds roughly
-  if (frameCount % 180 === 0) {
-    spawnFlame();
-  }
+    if (player.isInvincible) {
+        player.invincibilityTimer--;
+        if (player.invincibilityTimer <= 0) player.isInvincible = false;
+    }
+
+    // --- Kong Physics ---
+    if (kong.isJumping) {
+        kong.dy += GRAVITY;
+        kong.y += kong.dy;
+
+        if (kong.y + kong.height >= GROUND_Y) {
+            kong.y = GROUND_Y - kong.height;
+            kong.dy = 0;
+            kong.isJumping = false;
+            spawnShockwave();
+        }
+    }
+
+    // --- Move & Clean Obstacles ---
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        let obs = obstacles[i];
+        obs.x -= gameSpeed;
+
+        if (checkCollision(player, obs)) takeDamage();
+        if (obs.x + obs.width < 0) obstacles.splice(i, 1);
+    }
+
+    // --- Move & Clean Shockwaves ---
+    for (let i = shockwaves.length - 1; i >= 0; i--) {
+        let wave = shockwaves[i];
+        wave.x += (wave.speed - gameSpeed); 
+
+        if (checkCollision(player, wave)) {
+            takeDamage();
+            shockwaves.splice(i, 1); 
+            continue;
+        }
+
+        if (wave.x > CANVAS_WIDTH) shockwaves.splice(i, 1);
+    }
+
+    // --- Spawn Logic ---
+    let spawnRate = Math.max(60, 120 - (gameSpeed * 5)); 
+    if (frameCount % Math.floor(spawnRate) === 0) {
+        spawnObstacle();
+    }
+
+    if (frameCount % 180 === 0 && !kong.isJumping) {
+        kong.dy = -14; 
+        kong.isJumping = true;
+    }
 }
 
 function draw() {
-  // Clear canvas
-  ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // 1. Clear Canvas (Sky)
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-  // Draw Ground
-  ctx.fillStyle = "#654321"; // Brown
-  ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, GROUND_HEIGHT);
+    // 2. Draw Parallax Background City
+    ctx.fillStyle = '#1a1a2e'; // Dark navy silhouette color
+    bgBuildings.forEach(b => {
+        ctx.fillRect(b.x, GROUND_Y - b.height, b.width, b.height);
+    });
 
-  // Draw Godzilla
-  ctx.fillStyle = godzilla.color;
-  ctx.fillRect(godzilla.x, godzilla.y, godzilla.width, godzilla.height);
-  // Godzilla Eye
-  ctx.fillStyle = "red";
-  ctx.fillRect(godzilla.x + 70, godzilla.y + 15, 10, 10);
+    // 3. Draw Racing Road
+    ctx.fillStyle = '#222'; // Dark asphalt
+    ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, GROUND_HEIGHT);
 
-  // Draw Player (Blinks if invincible)
-  if (!player.isInvincible || Math.floor(frameCount / 5) % 2 === 0) {
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
-  }
+    // 4. Draw Racing Stripes on the road
+    ctx.fillStyle = '#fff';
+    for (let i = -roadOffset; i < CANVAS_WIDTH; i += 80) { // 40px line, 40px gap
+        ctx.fillRect(i, GROUND_Y + 20, 40, 10);
+    }
 
-  // Draw Obstacles
-  obstacles.forEach((obs) => {
-    ctx.fillStyle = obs.color;
-    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-  });
+    // 5. Kong
+    ctx.fillStyle = kong.color;
+    ctx.fillRect(kong.x, kong.y, kong.width, kong.height);
+    ctx.fillStyle = '#3E2723';
+    ctx.fillRect(kong.x + 20, kong.y + 20, kong.width - 20, 50);
 
-  // Draw Flames
-  flames.forEach((flame) => {
-    ctx.fillStyle = flame.color;
-    ctx.fillRect(flame.x, flame.y, flame.width, flame.height);
-    // Flame inner core
-    ctx.fillStyle = "yellow";
-    ctx.fillRect(flame.x + 10, flame.y + 4, flame.width - 20, flame.height - 8);
-  });
+    // 6. Player
+    if (!player.isInvincible || Math.floor(frameCount / 5) % 2 === 0) {
+        ctx.fillStyle = player.color;
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
+
+    // 7. Obstacles
+    obstacles.forEach(obs => {
+        ctx.fillStyle = obs.color;
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+    });
+
+    // 8. Shockwaves
+    shockwaves.forEach(wave => {
+        ctx.fillStyle = wave.color;
+        ctx.beginPath();
+        ctx.moveTo(wave.x, wave.y + wave.height);
+        ctx.lineTo(wave.x + wave.width / 2, wave.y);
+        ctx.lineTo(wave.x + wave.width, wave.y + wave.height);
+        ctx.fill();
+    });
 }
 
 function gameLoop() {
-  if (!gameActive) return;
-
-  update();
-  draw();
-
-  requestAnimationFrame(gameLoop);
+    if (!gameActive) return;
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
 }
 
-// Initial draw to show background before starting
+// Initial setup to show background on the start screen
+initBackground();
 draw();
